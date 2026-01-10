@@ -14,6 +14,7 @@ namespace StudentManagement.Core.Entities
         public int ClassId { get; set; }
         public DateTime EnrollmentDate { get; set; } = DateTime.Now;
         public string Status { get; set; } // Active, Cancelled, Failed
+        //bỏ ispassed, sửa các trạng thái của status là (pass, not pass, pending, not started )
 
         // Navigation
         public Student Student { get; set; }
@@ -24,7 +25,7 @@ namespace StudentManagement.Core.Entities
         public double? FinalScore { get; set; }   // Điểm cuối kỳ
         public double? TotalScore { get; set; }   // Tổng kết (VD: 40% Mid + 60% Final)
 
-        public string Grade { get; set; }  // A, B, C, D, F (Tính tự động)
+        public string? Grade { get; set; }  // A, B, C, D, F (Tính tự động)
         public bool IsPassed { get; set; } // True nếu qua môn
 
         // VẤN ĐỀ 3: ĐẾM SỐ LẦN HỌC

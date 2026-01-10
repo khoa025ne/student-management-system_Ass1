@@ -1,9 +1,9 @@
-﻿using System;
-using System.Threading.Tasks;
-using System.Linq;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using StudentManagement.Core.Entities;
 using StudentManagement.Infrastructure.Data;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace StudentManagement.Infrastructure.Services
 {
@@ -16,75 +16,113 @@ namespace StudentManagement.Infrastructure.Services
             _context = context;
         }
 
+        // ĐĂNG KÝ MÔN HỌC
         public async Task<string> RegisterCourseAsync(int studentId, int classId)
         {
-            // 1. Lấy thông tin Lớp đang muốn đăng ký
-            var classInfo = await _context.Classes
-                .Include(c => c.Course) // Load thông tin môn học
+            // 1. Tìm lớp
+            var cls = await _context.Classes
+                .Include(c => c.Course)
                 .FirstOrDefaultAsync(c => c.ClassId == classId);
 
-            if (classInfo == null) return "Lớp học không tồn tại.";
+            if (cls == null)
+                return "Class not found";
 
-            // 2. Check Sĩ số
-            if (classInfo.CurrentEnrollment >= classInfo.MaxCapacity)
-                return "Lớp đã đầy (Full Capacity).";
+            // 2. Check sĩ số
+            if (cls.CurrentEnrollment >= cls.MaxCapacity)
+                return "Class is full";
 
-            // 3. Check Trùng lịch
-            bool isScheduleConflict = await _context.Enrollments
-                .Include(e => e.Class)
-                .AnyAsync(e => e.StudentId == studentId &&
-                               e.Class.SemesterId == classInfo.SemesterId &&
-                               e.Class.Schedule == classInfo.Schedule &&
-                               e.Status == "Active");
-
-            if (isScheduleConflict) return "Bạn bị trùng lịch học với môn khác!";
-
-            // 4. Check Điều kiện tiên quyết (Prerequisite)
-            if (classInfo.Course.PrerequisiteCourseId != null)
+            // 3. Check tiên quyết (nếu môn có Prerequisite)
+            if (cls.Course.PrerequisiteCourseId.HasValue)
             {
-                // 4a. Lấy tên môn tiên quyết để báo lỗi cho rõ
-                var preCourse = await _context.Courses
-                    .FindAsync(classInfo.Course.PrerequisiteCourseId);
+                var preId = cls.Course.PrerequisiteCourseId.Value;
 
-                string preCourseName = preCourse?.CourseCode ?? "Unknown"; // Ví dụ: PRF192
+                bool hasPassedPrerequisite = await _context.Enrollments
+                    .AnyAsync(e =>
+                        e.StudentId == studentId &&
+                        e.Class.CourseId == preId &&
+                        e.IsPassed);
 
-                // 4b. Kiểm tra lịch sử học
-                var prerequisiteHistory = await _context.Enrollments
-                    .Include(e => e.Class)
-                    .Where(e => e.StudentId == studentId &&
-                                e.Class.CourseId == classInfo.Course.PrerequisiteCourseId)
-                    .OrderByDescending(e => e.EnrollmentDate)
-                    .FirstOrDefaultAsync();
-
-                // Điều kiện: Chưa từng học HOẶC (Đã học nhưng rớt/chưa qua)
-                if (prerequisiteHistory == null || !prerequisiteHistory.IsPassed)
-                {
-                    return $"Bạn chưa qua môn tiên quyết: {preCourseName} (Prerequisite not passed).";
-                }
+                if (!hasPassedPrerequisite)
+                    return "Chưa đạt môn tiên quyết";
             }
 
-            // 5. Tính số lần học (Attempt Number)
-            int previousAttempts = await _context.Enrollments
+            // 4. Check trùng lịch: cùng kỳ + cùng cặp ngày + cùng slot
+            var existingEnrollments = await _context.Enrollments
                 .Include(e => e.Class)
-                .CountAsync(e => e.StudentId == studentId && e.Class.CourseId == classInfo.CourseId);
+                .Where(e => e.StudentId == studentId &&
+                            e.Status == "Active" &&
+                            e.Class.SemesterId == cls.SemesterId)
+                .ToListAsync();
 
-            // 6. Tạo Enrollment mới
+            bool hasConflict = existingEnrollments.Any(e =>
+                e.Class.DayOfWeekPair == cls.DayOfWeekPair &&
+                e.Class.TimeSlot == cls.TimeSlot
+            );
+
+            if (hasConflict)
+                return "Lịch học trùng với một lớp khác trong cùng Slot/Cặp ngày";
+
+            // 5. Tạo enrollment
             var enrollment = new Enrollment
             {
                 StudentId = studentId,
                 ClassId = classId,
                 Status = "Active",
-                EnrollmentDate = DateTime.Now,
-                AttemptNumber = previousAttempts + 1, // Lần học thứ mấy
-                IsPassed = false // Mới đăng ký thì chưa đậu
+                EnrollmentDate = DateTime.UtcNow
             };
 
-            // 7. Cập nhật sĩ số lớp
-            classInfo.CurrentEnrollment++;
-
             _context.Enrollments.Add(enrollment);
-            await _context.SaveChangesAsync();
+            cls.CurrentEnrollment += 1;
 
+            await _context.SaveChangesAsync();
+            return "Success";
+        }
+
+        // HÀM ĐỔI LỚP (đã thêm trước đó)
+        public async Task<string> ChangeClassAsync(int studentId, int oldClassId, int newClassId)
+        {
+            var enrollment = await _context.Enrollments
+                .FirstOrDefaultAsync(e => e.StudentId == studentId &&
+                                          e.ClassId == oldClassId &&
+                                          e.Status == "Active");
+
+            if (enrollment == null)
+                return "Enrollment not found";
+
+            var oldClass = await _context.Classes.FindAsync(oldClassId);
+            var newClass = await _context.Classes.FindAsync(newClassId);
+
+            if (newClass == null)
+                return "New class not found";
+
+            if (oldClass.CourseId != newClass.CourseId)
+                return "Chỉ được đổi giữa các lớp của cùng một môn";
+
+            if (newClass.CurrentEnrollment >= newClass.MaxCapacity)
+                return "New class is full";
+
+            var otherEnrollments = await _context.Enrollments
+                .Include(e => e.Class)
+                .Where(e => e.StudentId == studentId &&
+                            e.ClassId != oldClassId &&
+                            e.Status == "Active" &&
+                            e.Class.SemesterId == newClass.SemesterId)
+                .ToListAsync();
+
+            bool conflict = otherEnrollments.Any(e =>
+                e.Class.DayOfWeekPair == newClass.DayOfWeekPair &&
+                e.Class.TimeSlot == newClass.TimeSlot
+            );
+
+            if (conflict)
+                return "Lịch new class trùng với một lớp khác";
+
+            enrollment.ClassId = newClassId;
+
+            oldClass.CurrentEnrollment -= 1;
+            newClass.CurrentEnrollment += 1;
+
+            await _context.SaveChangesAsync();
             return "Success";
         }
     }
