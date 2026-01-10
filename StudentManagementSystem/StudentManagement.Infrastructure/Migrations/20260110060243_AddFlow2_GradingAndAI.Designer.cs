@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudentManagement.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using StudentManagement.Infrastructure.Data;
 namespace StudentManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260110060243_AddFlow2_GradingAndAI")]
+    partial class AddFlow2_GradingAndAI
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,46 +24,6 @@ namespace StudentManagement.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
-
-            modelBuilder.Entity("StudentManagement.Core.Entities.AcademicAnalysis", b =>
-                {
-                    b.Property<int>("AnalysisId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("AnalysisId"));
-
-                    b.Property<string>("AiModelUsed")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("AnalysisDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<double>("OverallGPA")
-                        .HasColumnType("double");
-
-                    b.Property<string>("Recommendations")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("StrongSubjectsJson")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("StudentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("WeakSubjectsJson")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("AnalysisId");
-
-                    b.HasIndex("StudentId");
-
-                    b.ToTable("AcademicAnalyses");
-                });
 
             modelBuilder.Entity("StudentManagement.Core.Entities.Class", b =>
                 {
@@ -70,10 +33,6 @@ namespace StudentManagement.Infrastructure.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ClassId"));
 
-                    b.Property<string>("ClassCode")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
                     b.Property<string>("ClassName")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -82,9 +41,6 @@ namespace StudentManagement.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("CurrentEnrollment")
-                        .HasColumnType("int");
-
-                    b.Property<int>("DayOfWeekPair")
                         .HasColumnType("int");
 
                     b.Property<int>("MaxCapacity")
@@ -102,9 +58,6 @@ namespace StudentManagement.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<int?>("TeacherId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TimeSlot")
                         .HasColumnType("int");
 
                     b.HasKey("ClassId");
@@ -194,40 +147,6 @@ namespace StudentManagement.Infrastructure.Migrations
                     b.HasIndex("StudentId");
 
                     b.ToTable("Enrollments");
-                });
-
-            modelBuilder.Entity("StudentManagement.Core.Entities.Notification", b =>
-                {
-                    b.Property<int>("NotificationId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("NotificationId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("NotificationId");
-
-                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("StudentManagement.Core.Entities.Role", b =>
@@ -352,9 +271,6 @@ namespace StudentManagement.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int?>("CurrentTermNo")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("datetime(6)");
 
@@ -365,9 +281,6 @@ namespace StudentManagement.Infrastructure.Migrations
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasColumnType("longtext");
-
-                    b.Property<bool>("IsFirstLogin")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Major")
                         .IsRequired()
@@ -443,17 +356,6 @@ namespace StudentManagement.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("StudentManagement.Core.Entities.AcademicAnalysis", b =>
-                {
-                    b.HasOne("StudentManagement.Core.Entities.Student", "Student")
-                        .WithMany("Analyses")
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Student");
-                });
-
             modelBuilder.Entity("StudentManagement.Core.Entities.Class", b =>
                 {
                     b.HasOne("StudentManagement.Core.Entities.Course", "Course")
@@ -486,7 +388,7 @@ namespace StudentManagement.Infrastructure.Migrations
             modelBuilder.Entity("StudentManagement.Core.Entities.Enrollment", b =>
                 {
                     b.HasOne("StudentManagement.Core.Entities.Class", "Class")
-                        .WithMany("Enrollments")
+                        .WithMany()
                         .HasForeignKey("ClassId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -535,11 +437,6 @@ namespace StudentManagement.Infrastructure.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("StudentManagement.Core.Entities.Class", b =>
-                {
-                    b.Navigation("Enrollments");
-                });
-
             modelBuilder.Entity("StudentManagement.Core.Entities.Role", b =>
                 {
                     b.Navigation("Users");
@@ -547,8 +444,6 @@ namespace StudentManagement.Infrastructure.Migrations
 
             modelBuilder.Entity("StudentManagement.Core.Entities.Student", b =>
                 {
-                    b.Navigation("Analyses");
-
                     b.Navigation("Enrollments");
 
                     b.Navigation("Scores");

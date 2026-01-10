@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System;
-using System.Collections.Generic;
+using StudentManagement.Core.Enums;
 
 namespace StudentManagement.Core.Entities
 {
@@ -21,10 +17,15 @@ namespace StudentManagement.Core.Entities
 
         // Lịch học (Giản lược)
         public string Room { get; set; } // P.304
+
+        // Legacy: không dùng để check trùng lịch nữa, chỉ để hiển thị nếu cần
         public string Schedule { get; set; } // Mon-Wed-Fri (Ca 1)
 
-        // LIÊN KẾT QUAN TRỌNG:
+        // MỚI: lịch kiểu FPTU
+        public DayOfWeekPair DayOfWeekPair { get; set; }   // 2-5, 3-6, 4-7
+        public TimeSlot TimeSlot { get; set; }             // Slot1–4
 
+        // LIÊN KẾT QUAN TRỌNG:
         // 1. Thuộc về Môn nào? (Ví dụ: Lớp SE1801 dạy môn PRN211)
         public int CourseId { get; set; }
         public Course Course { get; set; }
@@ -37,7 +38,9 @@ namespace StudentManagement.Core.Entities
         public int? TeacherId { get; set; }
         // public User Teacher { get; set; }
 
+        public string ClassCode { get; set; }
+
         // Danh sách sinh viên đăng ký vào lớp này
-        // public ICollection<Enrollment> Enrollments { get; set; }
+        public ICollection<Enrollment> Enrollments { get; set; }
     }
 }

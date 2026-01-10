@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql;
 using StudentManagement.Core.Interfaces;
-using StudentManagement.Infrastructure.Data; // Đảm bảo namespace này khớp với nơi bạn đặt AppDbContext
+using StudentManagement.Infrastructure.Data;
 using StudentManagement.Infrastructure.Repositories;
 using StudentManagement.Infrastructure.Services;
+
 namespace StudentManagement.API
 {
     public class Program
@@ -12,46 +13,36 @@ namespace StudentManagement.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
-            builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-            // ...
-            builder.Services.AddScoped<IStudentRepository, StudentRepository>();
-            // ...
-            builder.Services.AddScoped<ISemesterRepository, SemesterRepository>();
-            // Thêm dòng này cùng chỗ với các Services khác
-            builder.Services.AddScoped<ISemesterRepository, SemesterRepository>();
-            // Thêm vào Program.cs
-            builder.Services.AddScoped<IClassRepository, ClassRepository>();
-            builder.Services.AddScoped<EnrollmentService>();
-
-
-
             // =================================================================
-            // 1. CẤU HÌNH DATABASE (MYSQL - POMELO)
+            // 1. CẤU HÌNH SERVICES (DI CONTAINER)
             // =================================================================
 
-            // Lấy chuỗi kết nối từ appsettings.json
+            // A. Cấu hình CORS (Cho phép Frontend/Swagger gọi API và xem ảnh)
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    b =>
+                    {
+                        b.AllowAnyOrigin()  // Cho phép mọi nguồn
+                         .AllowAnyMethod()  // Cho phép mọi method (GET, POST...)
+                         .AllowAnyHeader(); // Cho phép mọi header
+                    });
+            });
+
+            // B. Cấu hình Database
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-            // Kiểm tra nếu connection string chưa được cấu hình
             if (string.IsNullOrEmpty(connectionString))
             {
                 throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
             }
 
-            // Đăng ký AppDbContext
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseMySql(
                     connectionString,
-                    ServerVersion.AutoDetect(connectionString), // Tự động phát hiện version MySQL
+                    ServerVersion.AutoDetect(connectionString),
                     mysqlOptions =>
                     {
-                        // Cấu hình thêm nếu cần (ví dụ: tự động retry khi mất kết nối)
                         mysqlOptions.EnableRetryOnFailure(
                             maxRetryCount: 5,
                             maxRetryDelay: TimeSpan.FromSeconds(10),
@@ -59,32 +50,53 @@ namespace StudentManagement.API
                     }
                 );
 
-                // Log SQL ra console khi ở môi trường Development để dễ debug
                 if (builder.Environment.IsDevelopment())
                 {
-                    options.EnableSensitiveDataLogging(); // Hiện tham số query
+                    options.EnableSensitiveDataLogging();
                     options.EnableDetailedErrors();
                 }
             });
 
-            // =================================================================
+            // C. Đăng ký các Services & Repositories
+            builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+            builder.Services.AddScoped<ISemesterRepository, SemesterRepository>();
+            builder.Services.AddScoped<IClassRepository, ClassRepository>();
+            builder.Services.AddScoped<EnrollmentService>();
+            builder.Services.AddScoped<IGradeService, GradeService>(); // Service Nhập điểm
+            builder.Services.AddScoped<EnrollmentService>();
 
+            // D. Các Service cơ bản mặc định
+            builder.Services.AddControllers();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+
+            // =================================================================
+            // 2. BUILD APP & CẤU HÌNH MIDDLEWARE (PIPELINE)
+            // =================================================================
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            // A. Swagger (Môi trường Dev)
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
 
+            // B. Static Files (QUAN TRỌNG: Để xem ảnh Avatar)
+            app.UseStaticFiles();
+
+            // C. CORS (QUAN TRỌNG: Phải đặt trước Authorization)
+            app.UseCors("AllowAll");
+
+            // D. Các Middleware khác
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
-
 
             app.MapControllers();
 
+            // =================================================================
+            // 3. CHẠY APP
+            // =================================================================
             app.Run();
         }
     }

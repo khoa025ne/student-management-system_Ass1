@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using StudentManagement.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using StudentManagement.Infrastructure.Data;
 namespace StudentManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260110070501_AddClassCodeColumn")]
+    partial class AddClassCodeColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -84,9 +87,6 @@ namespace StudentManagement.Infrastructure.Migrations
                     b.Property<int>("CurrentEnrollment")
                         .HasColumnType("int");
 
-                    b.Property<int>("DayOfWeekPair")
-                        .HasColumnType("int");
-
                     b.Property<int>("MaxCapacity")
                         .HasColumnType("int");
 
@@ -102,9 +102,6 @@ namespace StudentManagement.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<int?>("TeacherId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TimeSlot")
                         .HasColumnType("int");
 
                     b.HasKey("ClassId");
@@ -352,9 +349,6 @@ namespace StudentManagement.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int?>("CurrentTermNo")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("datetime(6)");
 
@@ -365,9 +359,6 @@ namespace StudentManagement.Infrastructure.Migrations
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasColumnType("longtext");
-
-                    b.Property<bool>("IsFirstLogin")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Major")
                         .IsRequired()
@@ -486,7 +477,7 @@ namespace StudentManagement.Infrastructure.Migrations
             modelBuilder.Entity("StudentManagement.Core.Entities.Enrollment", b =>
                 {
                     b.HasOne("StudentManagement.Core.Entities.Class", "Class")
-                        .WithMany("Enrollments")
+                        .WithMany()
                         .HasForeignKey("ClassId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -533,11 +524,6 @@ namespace StudentManagement.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Role");
-                });
-
-            modelBuilder.Entity("StudentManagement.Core.Entities.Class", b =>
-                {
-                    b.Navigation("Enrollments");
                 });
 
             modelBuilder.Entity("StudentManagement.Core.Entities.Role", b =>
