@@ -6,21 +6,24 @@ using StudentManagement.Core.DTOs;
 using StudentManagement.Core.Entities;
 using StudentManagement.Core.Interfaces;
 using StudentManagement.Infrastructure.Data;
+using StudentManagement.Core.Entities;
+
 
 namespace StudentManagement.Infrastructure.Services
 {
     public class GradeService : IGradeService
     {
         private readonly AppDbContext _context;
+        private readonly IAiAnalysisService _aiAnalysisService; // service AI mới
 
-        public GradeService(AppDbContext context)
+        public GradeService(AppDbContext context, IAiAnalysisService aiAnalysisService)
         {
             _context = context;
+            _aiAnalysisService = aiAnalysisService;
         }
 
         public async Task<GradeResponse> UpdateGradeAsync(UpdateGradeRequest request)
         {
-            // 1. Tìm Enrollment
             var enrollment = await _context.Enrollments
                 .Include(e => e.Student)
                 .Include(e => e.Class).ThenInclude(c => c.Course)
@@ -29,34 +32,26 @@ namespace StudentManagement.Infrastructure.Services
             if (enrollment == null)
                 throw new Exception("Không tìm thấy bản ghi đăng ký học này.");
 
-            // 2. Cập nhật điểm thành phần
+            if (request.MidtermScore is < 0 or > 10 ||
+                request.FinalScore is < 0 or > 10)
+                throw new Exception("Điểm phải nằm trong khoảng 0 - 10.");
+
             enrollment.MidtermScore = request.MidtermScore;
             enrollment.FinalScore = request.FinalScore;
 
-            // 3. Tính điểm tổng kết môn (40% - 60%)
-            // Làm tròn 1 chữ số thập phân (VD: 8.56 -> 8.6)
             double total = (request.MidtermScore * 0.4) + (request.FinalScore * 0.6);
-            // TRƯỚC: Làm tròn 1 chữ số
-            // enrollment.TotalScore = Math.Round(total, 1);
-
-            // SAU: Làm tròn 3 chữ số thập phân (Hệ số 0.000)
             enrollment.TotalScore = Math.Round(total, 3);
 
-
-            // 4. Quy đổi Grade & Trạng thái Pass/Fail
             AssignGrade(enrollment);
+            enrollment.Status = "Completed";
 
-            // 5. Lưu tạm điểm môn này vào DB trước
             await _context.SaveChangesAsync();
 
-            // 6. TÍNH LẠI GPA TÍCH LŨY (OVERALL GPA)
-            // Lấy tất cả môn đã có điểm của SV này
             var allGrades = await _context.Enrollments
                 .Include(e => e.Class).ThenInclude(c => c.Course)
                 .Where(e => e.StudentId == enrollment.StudentId && e.TotalScore != null)
                 .ToListAsync();
 
-            // Lọc lấy điểm mới nhất của từng môn (Nếu học lại thì lấy điểm mới nhất)
             var latestGrades = allGrades
                 .GroupBy(e => e.Class.CourseId)
                 .Select(g => g.OrderByDescending(e => e.EnrollmentDate).First())
@@ -65,18 +60,30 @@ namespace StudentManagement.Infrastructure.Services
             double totalPoints = latestGrades.Sum(e => (e.TotalScore ?? 0) * e.Class.Course.Credits);
             int totalCredits = latestGrades.Sum(e => e.Class.Course.Credits);
 
-            // TRƯỚC:
-            // double overallGpa = totalCredits > 0 ? Math.Round(totalPoints / totalCredits, 2) : 0;
+            double overallGpa = totalCredits > 0
+                ? Math.Round(totalPoints / totalCredits, 3)
+                : 0;
 
-            // SAU:
-            double overallGpa = totalCredits > 0 ? Math.Round(totalPoints / totalCredits, 3) : 0;
-
-
-            // Cập nhật vào bảng Student
             enrollment.Student.OverallGPA = overallGpa;
             await _context.SaveChangesAsync();
 
-            // 7. Trả về kết quả
+            // Trigger notification
+            var noti = new Notification
+            {
+                StudentId = enrollment.StudentId,
+                Title = "Điểm môn học mới",
+                Message = $"Điểm môn {enrollment.Class.Course.CourseName}: " +
+                          $"{enrollment.TotalScore:0.0} ({enrollment.Grade}). " +
+                          $"GPA tích lũy hiện tại: {overallGpa:0.00}",
+                Type = "ScoreUpdate"
+            };
+
+            _context.Notifications.Add(noti);
+            await _context.SaveChangesAsync();
+
+            // AI phân tích nền
+            _ = _aiAnalysisService.GenerateAndSaveAnalysisAsync(enrollment.StudentId);
+
             return new GradeResponse
             {
                 EnrollmentId = enrollment.EnrollmentId,
@@ -91,6 +98,7 @@ namespace StudentManagement.Infrastructure.Services
             };
         }
 
+
         // Hàm phụ trợ: Quy đổi điểm số ra chữ cái
         private void AssignGrade(Enrollment e)
         {
@@ -102,7 +110,7 @@ namespace StudentManagement.Infrastructure.Services
             else if (score >= 4.0) e.Grade = "D";
             else e.Grade = "F";
 
-            e.IsPassed = (e.Grade != "F");
+            e.IsPassed = e.Grade != "F";
         }
     }
 }

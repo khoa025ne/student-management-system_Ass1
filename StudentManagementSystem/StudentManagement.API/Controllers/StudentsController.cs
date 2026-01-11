@@ -1,25 +1,58 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using BCrypt.Net;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StudentManagement.Core.DTOs;
 using StudentManagement.Core.Entities;
 using StudentManagement.Core.Interfaces;
 using StudentManagement.Infrastructure.Data;
-using BCrypt.Net;
 using System.IO;
+using System.Text;
+using Microsoft.AspNetCore.Mvc;
+using StudentManagement.Infrastructure.Services; // THÊM DÒNG NÀY
 
 namespace StudentManagement.API.Controllers
 {
+    
+
+    [ApiController]
+    [Route("api/[controller]")]
+    public class EmailTestController : ControllerBase
+    {
+        private readonly IEmailService _emailService;
+
+        public EmailTestController(IEmailService emailService)
+        {
+            _emailService = emailService;
+        }
+
+        [HttpGet("send-test")]
+        public async Task<IActionResult> SendTest()
+        {
+            await _emailService.SendEmailAsync(
+                "khoaai2009@gmail.com", // hoặc mail cá nhân khác
+                "Test email từ StudentManagement",
+                "<h1>Test OK</h1><p>Nếu bạn đọc được mail này thì SMTP hoạt động.</p>");
+
+            return Ok("Đã gọi gửi email, kiểm tra hộp thư.");
+        }
+    }
+
     [Route("api/[controller]")]
     [ApiController]
     public class StudentsController : ControllerBase
     {
         private readonly IStudentRepository _repo;
         private readonly AppDbContext _context;
+        private readonly GeminiService _geminiService; // dùng cho /ai-analysis
 
-        public StudentsController(IStudentRepository repo, AppDbContext context)
+        public StudentsController(
+            IStudentRepository repo,
+            AppDbContext context,
+            GeminiService geminiService)
         {
             _repo = repo;
             _context = context;
+            _geminiService = geminiService;
         }
 
         // 1. Lấy danh sách sinh viên
@@ -46,6 +79,22 @@ namespace StudentManagement.API.Controllers
         {
             var student = await _context.Students.FindAsync(id);
             if (student == null) return NotFound("Sinh viên không tồn tại");
+            return Ok(student);
+        }
+
+        // Tìm sinh viên theo MSSV (StudentCode)
+        [HttpGet("by-code/{studentCode}")]
+        public async Task<IActionResult> GetByStudentCode(string studentCode)
+        {
+            if (string.IsNullOrWhiteSpace(studentCode))
+                return BadRequest("StudentCode is required");
+
+            var student = await _context.Students
+                .FirstOrDefaultAsync(s => s.StudentCode == studentCode);
+
+            if (student == null)
+                return NotFound("Sinh viên không tồn tại");
+
             return Ok(student);
         }
 
@@ -140,7 +189,7 @@ namespace StudentManagement.API.Controllers
             return Ok(new { Url = student.AvatarUrl, Message = "Upload và cập nhật ảnh thành công!" });
         }
 
-        // 5. Xem Lịch học (Schedule) – ĐÃ THÊM DayOfWeekPair + TimeSlot
+        // 5. Xem Lịch học
         [HttpGet("{id:int}/schedule")]
         public async Task<IActionResult> GetStudentSchedule(int id, [FromQuery] int? semesterId)
         {
@@ -161,9 +210,9 @@ namespace StudentManagement.API.Controllers
                     e.Class.ClassId,
                     e.Class.ClassName,
                     e.Class.Room,
-                    e.Class.Schedule,          // legacy text nếu bạn muốn hiển thị
-                    e.Class.DayOfWeekPair,     // cặp ngày 2-5/3-6/4-7
-                    e.Class.TimeSlot,          // Slot1–4
+                    e.Class.Schedule,
+                    e.Class.DayOfWeekPair,
+                    e.Class.TimeSlot,
                     CourseCode = e.Class.Course.CourseCode,
                     CourseName = e.Class.Course.CourseName,
                     Semester = e.Class.Semester.SemesterName
@@ -173,7 +222,7 @@ namespace StudentManagement.API.Controllers
             return Ok(schedule);
         }
 
-        // 6. Xem Bảng điểm chi tiết (Transcript) – giữ nguyên như file cũ
+        // 6. Transcript
         [HttpGet("{id:int}/transcript")]
         public async Task<IActionResult> GetTranscript(int id)
         {
@@ -213,7 +262,35 @@ namespace StudentManagement.API.Controllers
             });
         }
 
-        // --- HELPER FUNCTIONS ---
+        // 7. AI analysis on-demand (gọi Gemini trực tiếp)
+        [HttpGet("{id:int}/ai-analysis")]
+        public async Task<IActionResult> GetAiAnalysis(int id)
+        {
+            var student = await _context.Students
+                .Include(s => s.Enrollments)
+                    .ThenInclude(e => e.Class)
+                        .ThenInclude(c => c.Course)
+                .FirstOrDefaultAsync(s => s.StudentId == id);
+
+            if (student == null)
+                return NotFound("Student not found");
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"Student: {student.FullName} ({student.StudentCode}), Major: {student.Major}");
+            sb.AppendLine("Enrollments:");
+            foreach (var e in student.Enrollments)
+            {
+                sb.AppendLine($"- {e.Class.Course.CourseCode} {e.Class.Course.CourseName}: " +
+                              $"Status={e.Status}, TotalScore={e.TotalScore}, Grade={e.Grade}");
+            }
+            sb.AppendLine("Hãy nhận xét học lực, điểm mạnh/yếu và gợi ý 3 môn nên học tiếp theo trong 1 đoạn ngắn, tiếng Việt.");
+
+            var aiText = await _geminiService.GenerateAnalysisAsync(sb.ToString());
+
+            return Ok(new { analysis = aiText });
+        }
+
+        // --- HELPER ---
 
         private double CalculateSemesterGpa(List<Enrollment> enrollments)
         {

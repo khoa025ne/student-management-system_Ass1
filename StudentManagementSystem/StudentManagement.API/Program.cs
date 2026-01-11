@@ -4,6 +4,8 @@ using StudentManagement.Core.Interfaces;
 using StudentManagement.Infrastructure.Data;
 using StudentManagement.Infrastructure.Repositories;
 using StudentManagement.Infrastructure.Services;
+using StudentManagement.Infrastructure.Services;
+
 
 namespace StudentManagement.API
 {
@@ -11,8 +13,10 @@ namespace StudentManagement.API
     {
         public static void Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
+            
 
+            var builder = WebApplication.CreateBuilder(args);
+            var geminiApiKey = builder.Configuration["Gemini:ApiKey"];
             // =================================================================
             // 1. CẤU HÌNH SERVICES (DI CONTAINER)
             // =================================================================
@@ -70,6 +74,24 @@ namespace StudentManagement.API
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // AI Geminiiiiiiiii
+
+            builder.Services.AddHttpClient<GeminiService>();
+            builder.Services.AddScoped<IAiAnalysisService, AiAnalysisService>();
+            builder.Services.AddScoped<IGradeService, GradeService>();
+
+
+
+            builder.Services.AddHttpClient<GeminiService>();
+            builder.Services.AddScoped<IAiAnalysisService, AiAnalysisService>();
+
+
+            //mail
+            builder.Services.AddScoped<IEmailService, EmailService>();
+
+
+
+
             // =================================================================
             // 2. BUILD APP & CẤU HÌNH MIDDLEWARE (PIPELINE)
             // =================================================================
@@ -81,6 +103,9 @@ namespace StudentManagement.API
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
+
+
 
             // B. Static Files (QUAN TRỌNG: Để xem ảnh Avatar)
             app.UseStaticFiles();

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using StudentManagement.Core.DTOs;
 using StudentManagement.Core.Entities;
 using StudentManagement.Infrastructure.Data;
 using System;
@@ -125,5 +126,88 @@ namespace StudentManagement.Infrastructure.Services
             await _context.SaveChangesAsync();
             return "Success";
         }
+        public async Task<List<AvailableClassDto>> GetAvailableClassesAsync(int studentId, int semesterId)
+        {
+            // lấy các lớp của kỳ này
+            var classes = await _context.Classes
+                .Include(c => c.Course)
+                .Where(c => c.SemesterId == semesterId)
+                .ToListAsync();
+
+            // enrollments hiện tại của SV trong kỳ này
+            var studentEnrollments = await _context.Enrollments
+                .Include(e => e.Class).ThenInclude(c => c.Course)
+                .Where(e => e.StudentId == studentId &&
+                            e.Class.SemesterId == semesterId &&
+                            e.Status == "Active")
+                .ToListAsync();
+
+            // các môn đã passed của SV (để check tiên quyết)
+            var passedCourseIds = await _context.Enrollments
+                .Include(e => e.Class)
+                .Where(e => e.StudentId == studentId && e.IsPassed)
+                .Select(e => e.Class.CourseId)
+                .Distinct()
+                .ToListAsync();
+
+            var result = new List<AvailableClassDto>();
+
+            foreach (var cls in classes)
+            {
+                bool hasCapacity = cls.CurrentEnrollment < cls.MaxCapacity;
+
+                bool prereqOk = true;
+                if (cls.Course.PrerequisiteCourseId.HasValue)
+                {
+                    prereqOk = passedCourseIds.Contains(cls.Course.PrerequisiteCourseId.Value);
+                }
+
+                bool conflict = studentEnrollments.Any(e =>
+                    e.Class.DayOfWeekPair == cls.DayOfWeekPair &&
+                    e.Class.TimeSlot == cls.TimeSlot);
+
+                var dto = new AvailableClassDto
+                {
+                    ClassId = cls.ClassId,
+                    ClassCode = cls.ClassCode,
+                    ClassName = cls.ClassName,
+                    CourseCode = cls.Course.CourseCode,
+                    CourseName = cls.Course.CourseName,
+                    Credits = cls.Course.Credits,
+                    Room = cls.Room,
+                    Schedule = cls.Schedule,
+                    DayOfWeekPair = cls.DayOfWeekPair,
+                    TimeSlot = cls.TimeSlot,
+                    CurrentEnrollment = cls.CurrentEnrollment,
+                    MaxCapacity = cls.MaxCapacity
+                };
+
+                if (!hasCapacity)
+                {
+                    dto.CanRegister = false;
+                    dto.StatusText = "Hết chỗ";
+                }
+                else if (!prereqOk)
+                {
+                    dto.CanRegister = false;
+                    dto.StatusText = "Không đủ điều kiện";
+                }
+                else if (conflict)
+                {
+                    dto.CanRegister = false;
+                    dto.StatusText = "Trùng lịch";
+                }
+                else
+                {
+                    dto.CanRegister = true;
+                    dto.StatusText = "Đủ chỗ";
+                }
+
+                result.Add(dto);
+            }
+
+            return result;
+        }
+
     }
 }
