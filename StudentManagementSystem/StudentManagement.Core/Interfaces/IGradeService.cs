@@ -11,6 +11,7 @@ namespace StudentManagement.Core.Interfaces
     public interface IGradeService
     {
         Task<GradeResponse> UpdateGradeAsync(UpdateGradeRequest request);
+
     }
 }
 

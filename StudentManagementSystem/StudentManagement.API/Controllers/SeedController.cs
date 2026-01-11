@@ -253,101 +253,102 @@ namespace StudentManagement.API.Controllers
             var aic301 = await _context.Courses.FirstAsync(c => c.CourseCode == "AIC301");
 
             var classes = new List<Class>
+{
+            // FAL22 – core PRF192 cho cả 3 chuyên ngành
+            new Class
             {
-                // FAL22 – core PRF192 cho cả 3 chuyên ngành
-                new Class
-                {
-                    ClassCode = "SE_K18_PRF192_1",
-                    ClassName = "PRF192 SE K18.1",
-                    CourseId  = prf192.CourseId,
-                    SemesterId = fal22.SemesterId,
-                    Room = "BE-201",
-                    Schedule = "Mon-Wed-Fri (M1)",
-                    DayOfWeekPair = DayOfWeekPair.MonThu,
-                    TimeSlot      = TimeSlot.Slot1,
-                    MaxCapacity   = 35
-                },
+                ClassCode = "SE_K18_PRF192_1",
+                ClassName = "PRF192 SE K18.1",
+                CourseId  = prf192.CourseId,
+                SemesterId = fal22.SemesterId,
+                Room = "BE-201",
+                Schedule = "Mon-Thu (M1)",                 // MonThu
+                DayOfWeekPair = DayOfWeekPair.MonThu,
+                TimeSlot      = TimeSlot.Slot1,
+                MaxCapacity   = 35
+            },
 
-                // SPR23 – Java cho SE
-                new Class
-                {
-                    ClassCode = "SE_K18_PRO192_1",
-                    ClassName = "PRO192 SE K18.1",
-                    CourseId  = pro192.CourseId,
-                    SemesterId = spr23.SemesterId,
-                    Room = "AL-205",
-                    Schedule = "Tue-Thu-Sat (M2)",
-                    DayOfWeekPair = DayOfWeekPair.TueFri,
-                    TimeSlot      = TimeSlot.Slot2,
-                    MaxCapacity   = 35
-                },
+            // SPR23 – Java cho SE
+            new Class
+            {
+                ClassCode = "SE_K18_PRO192_1",
+                ClassName = "PRO192 SE K18.1",
+                CourseId  = pro192.CourseId,
+                SemesterId = spr23.SemesterId,
+                Room = "AL-205",
+                Schedule = "Tue-Fri (M2)",                 // TueFri
+                DayOfWeekPair = DayOfWeekPair.TueFri,
+                TimeSlot      = TimeSlot.Slot2,
+                MaxCapacity   = 35
+            },
 
-                // SPR23 – IA intro cho SS
-                new Class
-                {
-                    ClassCode = "SS_K18_IAA201_1",
-                    ClassName = "IAA201 SS K18.1",
-                    CourseId  = iaa201.CourseId,
-                    SemesterId = spr23.SemesterId,
-                    Room = "BE-305",
-                    Schedule = "Mon-Wed-Fri (M3)",
-                    DayOfWeekPair = DayOfWeekPair.MonThu,
-                    TimeSlot      = TimeSlot.Slot3,
-                    MaxCapacity   = 35
-                },
+            // SPR23 – IA intro cho SS
+            new Class
+            {
+                ClassCode = "SS_K18_IAA201_1",
+                ClassName = "IAA201 SS K18.1",
+                CourseId  = iaa201.CourseId,
+                SemesterId = spr23.SemesterId,
+                Room = "BE-305",
+                Schedule = "Mon-Thu (M3)",                 // MonThu
+                DayOfWeekPair = DayOfWeekPair.MonThu,
+                TimeSlot      = TimeSlot.Slot3,
+                MaxCapacity   = 35
+            },
 
-                // SPR23 – DS intro cho AI
-                new Class
-                {
-                    ClassCode = "AI_K18_DSB201_1",
-                    ClassName = "DSB201 AI K18.1",
-                    CourseId  = dsb201.CourseId,
-                    SemesterId = spr23.SemesterId,
-                    Room = "BE-402",
-                    Schedule = "Tue-Thu-Sat (M3)",
-                    DayOfWeekPair = DayOfWeekPair.TueFri,
-                    TimeSlot      = TimeSlot.Slot3,
-                    MaxCapacity   = 35
-                },
+            // SPR23 – DS intro cho AI
+            new Class
+            {
+                ClassCode = "AI_K18_DSB201_1",
+                ClassName = "DSB201 AI K18.1",
+                CourseId  = dsb201.CourseId,
+                SemesterId = spr23.SemesterId,
+                Room = "BE-402",
+                Schedule = "Tue-Fri (M3)",                 // TueFri
+                DayOfWeekPair = DayOfWeekPair.TueFri,
+                TimeSlot      = TimeSlot.Slot3,
+                MaxCapacity   = 35
+            },
 
-                // SPR26 – lớp hiện tại (advanced SE/SS/AI) để test đăng ký
-                new Class
-                {
-                    ClassCode = "SE_K18_SWD391_1",
-                    ClassName = "SWD391 SE K18.1",
-                    CourseId  = swd391.CourseId,
-                    SemesterId = spr26.SemesterId,
-                    Room = "BE-501",
-                    Schedule = "Mon-Wed-Fri (E1)",
-                    DayOfWeekPair = DayOfWeekPair.MonThu,
-                    TimeSlot      = TimeSlot.Slot4,
-                    MaxCapacity   = 30
-                },
-                new Class
-                {
-                    ClassCode = "SS_K18_NET212_1",
-                    ClassName = "NET212 SS K18.1",
-                    CourseId  = net212.CourseId,
-                    SemesterId = spr26.SemesterId,
-                    Room = "BE-502",
-                    Schedule = "Tue-Thu-Sat (E1)",
-                    DayOfWeekPair = DayOfWeekPair.TueFri,
-                    TimeSlot      = TimeSlot.Slot4,
-                    MaxCapacity   = 30
-                },
-                new Class
-                {
-                    ClassCode = "AI_K18_AIC301_1",
-                    ClassName = "AIC301 AI K18.1",
-                    CourseId  = aic301.CourseId,
-                    SemesterId = spr26.SemesterId,
-                    Room = "BE-503",
-                    Schedule = "Wed-Sat (E1)",
-                    DayOfWeekPair = DayOfWeekPair.WedSat,
-                    TimeSlot      = TimeSlot.Slot4,
-                    MaxCapacity   = 30
-                }
-            };
+            // SPR26 – lớp hiện tại (advanced SE/SS/AI) để test đăng ký
+            new Class
+            {
+                ClassCode = "SE_K18_SWD391_1",
+                ClassName = "SWD391 SE K18.1",
+                CourseId  = swd391.CourseId,
+                SemesterId = spr26.SemesterId,
+                Room = "BE-501",
+                Schedule = "Mon-Thu (E1)",                 // MonThu
+                DayOfWeekPair = DayOfWeekPair.MonThu,
+                TimeSlot      = TimeSlot.Slot4,
+                MaxCapacity   = 30
+            },
+            new Class
+            {
+                ClassCode = "SS_K18_NET212_1",
+                ClassName = "NET212 SS K18.1",
+                CourseId  = net212.CourseId,
+                SemesterId = spr26.SemesterId,
+                Room = "BE-502",
+                Schedule = "Tue-Fri (E1)",                 // TueFri
+                DayOfWeekPair = DayOfWeekPair.TueFri,
+                TimeSlot      = TimeSlot.Slot4,
+                MaxCapacity   = 30
+            },
+            new Class
+            {
+                ClassCode = "AI_K18_AIC301_1",
+                ClassName = "AIC301 AI K18.1",
+                CourseId  = aic301.CourseId,
+                SemesterId = spr26.SemesterId,
+                Room = "BE-503",
+                Schedule = "Wed-Sat (E1)",                 // WedSat
+                DayOfWeekPair = DayOfWeekPair.WedSat,
+                TimeSlot      = TimeSlot.Slot4,
+                MaxCapacity   = 30
+            }
+        };
+
 
             await _context.Classes.AddRangeAsync(classes);
             await _context.SaveChangesAsync();
