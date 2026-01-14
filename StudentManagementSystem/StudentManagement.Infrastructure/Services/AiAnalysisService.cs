@@ -58,7 +58,8 @@ public class AiAnalysisService : IAiAnalysisService
                 đại học FPT (Khu vực TP. Hồ Chí Minh để nắm được 
                 nội dung môn học cho chuyên nghành tương ứng và đưa ra
                  lời khuyên cũng như những tài liệu liên quan Ví Dụ: 
-                link youtube,các tài liệu tham khảo liên quan tới môn học.
+                link youtube về những nội dung liên quan tới môn học,
+                 các tài liệu tham khảo liên quan tới môn học.
                 ). Dữ liệu:
                 {payloadJson}
 
