@@ -49,6 +49,54 @@ namespace StudentManagement.Infrastructure.Data
                 new Role { RoleId = 3, RoleName = "Teacher", Description = "Giảng viên" },
                 new Role { RoleId = 4, RoleName = "Student", Description = "Sinh viên" }
             );
+            // User configuration (thêm sau dòng 51)
+            // User configuration
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(e => e.UserId);
+
+                entity.Property(e => e.Email)
+                    .IsRequired()
+                    .HasMaxLength(255);
+
+                entity.HasIndex(e => e.Email)
+                    .IsUnique();
+
+                entity.Property(e => e.PasswordHash)
+                    .IsRequired();
+
+                entity.Property(e => e.FullName)
+                    .IsRequired()
+                    .HasMaxLength(255);
+
+                entity.Property(e => e.PhoneNumber)
+                    .HasMaxLength(20);
+
+                entity.Property(e => e.GoogleId)
+                    .HasMaxLength(255);
+
+                entity.HasIndex(e => e.GoogleId);
+
+                entity.Property(e => e.RefreshToken)
+                    .HasMaxLength(500);
+
+                // ✅ SỬA: Thêm (6) vào CURRENT_TIMESTAMP
+                entity.Property(e => e.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(e => e.IsActive)
+                    .HasDefaultValue(true);
+
+                entity.Property(e => e.MustChangePassword)
+                    .HasDefaultValue(false);
+
+                entity.HasOne(e => e.Role)
+                    .WithMany(r => r.Users)
+                    .HasForeignKey(e => e.RoleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
 
             // Semester
             modelBuilder.Entity<Semester>(entity =>

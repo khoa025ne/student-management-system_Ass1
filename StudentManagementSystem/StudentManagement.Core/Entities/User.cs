@@ -17,6 +17,13 @@ namespace StudentManagement.Core.Entities
         public DateTime? LastLogin { get; set; }
         public bool IsActive { get; set; }
 
+        // NEW FIELDS
+        public bool MustChangePassword { get; set; } = false;
+        public string? GoogleId { get; set; }
+        public DateTime? PasswordChangedAt { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
+
         // Navigation Properties
         public int RoleId { get; set; }
         public virtual Role Role { get; set; }
