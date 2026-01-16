@@ -13,5 +13,6 @@ namespace StudentManagement.Core.Interfaces
         Task<bool> DeleteUserAsync(int userId);
         Task<bool> UpdateUserRoleAsync(UpdateUserRoleDto dto);
         Task<List<UserDto>> GetUsersByRoleAsync(int roleId);
+        Task<UserDto> UpdateAvatarAsync(int userId, string avatarUrl);
     }
 }

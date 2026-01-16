@@ -23,6 +23,7 @@ namespace StudentManagement.Core.Entities
         public DateTime? PasswordChangedAt { get; set; }
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
+        public string? AvatarUrl { get; set; }
 
         // Navigation Properties
         public int RoleId { get; set; }

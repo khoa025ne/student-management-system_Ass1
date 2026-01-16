@@ -15,5 +15,6 @@ namespace StudentManagement.Core.DTOs.User
         public DateTime? LastLogin { get; set; }
         public bool MustChangePassword { get; set; }
         public bool HasGoogleAccount { get; set; }
+        public string? AvatarUrl { get; set; }
     }
 }
