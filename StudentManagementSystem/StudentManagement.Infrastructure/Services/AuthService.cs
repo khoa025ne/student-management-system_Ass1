@@ -117,10 +117,22 @@ namespace StudentManagement.Infrastructure.Services
             try
             {
                 // Verify Google token
-                var payload = await GoogleJsonWebSignature.ValidateAsync(dto.GoogleToken, new GoogleJsonWebSignature.ValidationSettings
+                Google.Apis.Auth.GoogleJsonWebSignature.Payload payload;
+                try
                 {
-                    Audience = new[] { _configuration["Google:ClientId"] }
-                });
+                    payload = await GoogleJsonWebSignature.ValidateAsync(dto.GoogleToken, new GoogleJsonWebSignature.ValidationSettings
+                    {
+                        Audience = new[] { _configuration["Google:ClientId"] }
+                    });
+                }
+                catch (InvalidJwtException ex)
+                {
+                    throw new UnauthorizedAccessException($"Google token không hợp lệ: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    throw new UnauthorizedAccessException($"Lỗi xác thực Google: {ex.Message}");
+                }
 
                 if (payload == null)
                 {
@@ -187,9 +199,13 @@ namespace StudentManagement.Infrastructure.Services
                     MustChangePassword = false
                 };
             }
-            catch (InvalidJwtException)
+            catch (UnauthorizedAccessException)
             {
-                throw new UnauthorizedAccessException("Google token không hợp lệ");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new UnauthorizedAccessException($"Đăng nhập Google thất bại: {ex.Message}");
             }
         }
 
@@ -200,6 +216,37 @@ namespace StudentManagement.Infrastructure.Services
             if (user == null)
             {
                 throw new Exception("Không tìm thấy người dùng");
+            }
+
+            // Verify old password
+            if (!BCrypt.Net.BCrypt.Verify(dto.OldPassword, user.PasswordHash))
+            {
+                throw new UnauthorizedAccessException("Mật khẩu cũ không đúng");
+            }
+
+            // Validate new password
+            var (isValid, errors) = PasswordValidator.Validate(dto.NewPassword);
+            if (!isValid)
+            {
+                throw new Exception(string.Join(", ", errors));
+            }
+
+            // Update password
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            user.MustChangePassword = false;
+            user.PasswordChangedAt = DateTime.UtcNow;
+
+            await _userRepository.UpdateAsync(user);
+            return true;
+        }
+
+        public async Task<bool> ChangePasswordByEmailAsync(ChangePasswordByEmailDto dto)
+        {
+            var user = await _userRepository.GetByEmailAsync(dto.Email);
+            
+            if (user == null)
+            {
+                throw new Exception("Không tìm thấy tài khoản với email này");
             }
 
             // Verify old password

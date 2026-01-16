@@ -9,6 +9,7 @@ namespace StudentManagement.Core.Interfaces
         Task<RegisterResponseDto> RegisterAsync(RegisterRequestDto dto);
         Task<LoginResponseDto> GoogleLoginAsync(GoogleLoginDto dto);
         Task<bool> ChangePasswordAsync(int userId, ChangePasswordDto dto);
+        Task<bool> ChangePasswordByEmailAsync(ChangePasswordByEmailDto dto);
         Task<LoginResponseDto> RefreshTokenAsync(string refreshToken);
         Task<bool> RevokeTokenAsync(int userId);
     }

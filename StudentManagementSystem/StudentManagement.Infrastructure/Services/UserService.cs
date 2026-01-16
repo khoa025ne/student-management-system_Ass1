@@ -197,8 +197,22 @@ namespace StudentManagement.Infrastructure.Services
                 CreatedAt = user.CreatedAt,
                 LastLogin = user.LastLogin,
                 MustChangePassword = user.MustChangePassword,
-                HasGoogleAccount = !string.IsNullOrEmpty(user.GoogleId)
+                HasGoogleAccount = !string.IsNullOrEmpty(user.GoogleId),
+                AvatarUrl = user.AvatarUrl
             };
+        }
+
+        public async Task<UserDto> UpdateAvatarAsync(int userId, string avatarUrl)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+            {
+                throw new Exception("Không tìm thấy người dùng");
+            }
+
+            user.AvatarUrl = avatarUrl;
+            var updatedUser = await _userRepository.UpdateAsync(user);
+            return MapToUserDto(updatedUser);
         }
     }
 }
